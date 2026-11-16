@@ -147,10 +147,11 @@ const Audio = {
   init() { const load = () => { try { this.voices = speechSynthesis.getVoices().filter(v => /^en[-_]/i.test(v.lang)); } catch {} }; try { load(); speechSynthesis.onvoiceschanged = load; } catch {} },
   async initCap() { try { this.tts = await claude.use("tts"); } catch {} },
   voiceFor(accent, idx = 0) { const want = accent.toLowerCase(); const vs = this.voices.filter(v => v.lang.toLowerCase().replace("_", "-") === want); const list = vs.length ? vs : this.voices; return list.length ? list[idx % list.length] : null; },
-  hasBrowser() { return typeof speechSynthesis !== "undefined" && this.voices.length > 0; },
+  hasBrowser() { return typeof speechSynthesis !== "undefined" && typeof SpeechSynthesisUtterance !== "undefined"; },
   async speak(text, opt = {}) {
     const st = S().settings; const rate = opt.rate || st.rate || 1; const accent = opt.accent || st.accent;
     const engine = st.engine;
+    if (!this.voices.length) this.init();
     const useBrowser = (engine === "browser" || (engine === "auto" && (opt.accent || !this.tts))) && this.hasBrowser();
     this.stop();
     if (useBrowser) {
@@ -287,7 +288,7 @@ function route() {
   CUR = h; renderNav(h);
   const name = Object.keys(VIEWS).sort((a, b) => b.length - a.length).find(k => h === k || h.startsWith(k + "-"));
   const arg = name && h.length > name.length ? h.slice(name.length + 1) : "";
-  const v = $("#view"); v.className = "view"; void v.offsetWidth;
+  const v = $("#view"); v.classList.remove("view"); void v.offsetWidth; v.classList.add("view");
   try { v.innerHTML = ""; (VIEWS[name] || VIEWS.home)(v, arg); } catch (e) { console.error(e); v.innerHTML = `<div class="err"><b>Ошибка отображения страницы.</b><br>${esc(e.message || e)}</div>`; }
   window.scrollTo(0, 0); tick();
 }

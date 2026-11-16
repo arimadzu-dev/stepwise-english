@@ -135,6 +135,8 @@ table.t th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spa
 .photo{width:100%;max-width:460px;border-radius:14px;border:1px solid var(--line);display:block}
 .kbd{font-family:ui-monospace,monospace;background:var(--surface2);padding:1px 6px;border-radius:5px;font-size:12px}
 .mic.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.grades{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.grades .btn{justify-content:center}
+.quick{grid-template-columns:repeat(3,1fr)}
 .hide{display:none!important}
 @media (max-width:880px){
   .app{grid-template-columns:1fr}
@@ -144,6 +146,11 @@ table.t th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spa
   .main{padding:18px 14px 80px}
   h1{font-size:23px}
   .flash .w{font-size:28px}
+  .grades{grid-template-columns:1fr 1fr}
+  .hero{padding:20px}
+  .modal{padding:20px 16px}
+  .row>select,.row>input{max-width:100%}
+  table.t{font-size:13px}
 }
 
 </style>
@@ -1166,10 +1173,11 @@ const Audio = {
   init() { const load = () => { try { this.voices = speechSynthesis.getVoices().filter(v => /^en[-_]/i.test(v.lang)); } catch {} }; try { load(); speechSynthesis.onvoiceschanged = load; } catch {} },
   async initCap() { try { this.tts = await claude.use("tts"); } catch {} },
   voiceFor(accent, idx = 0) { const want = accent.toLowerCase(); const vs = this.voices.filter(v => v.lang.toLowerCase().replace("_", "-") === want); const list = vs.length ? vs : this.voices; return list.length ? list[idx % list.length] : null; },
-  hasBrowser() { return typeof speechSynthesis !== "undefined" && this.voices.length > 0; },
+  hasBrowser() { return typeof speechSynthesis !== "undefined" && typeof SpeechSynthesisUtterance !== "undefined"; },
   async speak(text, opt = {}) {
     const st = S().settings; const rate = opt.rate || st.rate || 1; const accent = opt.accent || st.accent;
     const engine = st.engine;
+    if (!this.voices.length) this.init();
     const useBrowser = (engine === "browser" || (engine === "auto" && (opt.accent || !this.tts))) && this.hasBrowser();
     this.stop();
     if (useBrowser) {
@@ -1306,7 +1314,7 @@ function route() {
   CUR = h; renderNav(h);
   const name = Object.keys(VIEWS).sort((a, b) => b.length - a.length).find(k => h === k || h.startsWith(k + "-"));
   const arg = name && h.length > name.length ? h.slice(name.length + 1) : "";
-  const v = $("#view"); v.className = "view"; void v.offsetWidth;
+  const v = $("#view"); v.classList.remove("view"); void v.offsetWidth; v.classList.add("view");
   try { v.innerHTML = ""; (VIEWS[name] || VIEWS.home)(v, arg); } catch (e) { console.error(e); v.innerHTML = `<div class="err"><b>Ошибка отображения страницы.</b><br>${esc(e.message || e)}</div>`; }
   window.scrollTo(0, 0); tick();
 }
@@ -1398,7 +1406,7 @@ VIEWS.home = v => {
   ${plan.map(p => `<a href="#${p[2]}" class="opt" style="text-decoration:none;color:inherit;${s.daily.done[p[0]] ? "opacity:.55" : ""}">${s.daily.done[p[0]] ? "✅" : "⬜"} ${esc(p[1])}</a>`).join("")}
   <p class="muted" style="font-size:13px">Количество заданий меняется в <a href="#settings">настройках</a>.</p></div>
   <div class="stack"><div class="card stack"><h2>Рекомендации</h2>${recommendations().map(r => `<div class="note">${esc(r[0])} <a href="#${r[1]}">Перейти →</a></div>`).join("")}</div>
-  <div class="card"><h2>Быстрый доступ</h2><div class="grid g3" style="grid-template-columns:repeat(3,1fr)">${[["vocab", "📚", "Слова"], ["grammar", "🧩", "Грамматика"], ["det", "🦉", "DET"], ["reading", "📖", "Чтение"], ["listening", "🎧", "Аудио"], ["chat", "🤖", "Диалог"]].map(q => `<a href="#${q[0]}" class="card link" style="text-align:center;text-decoration:none;color:inherit;padding:12px"><div style="font-size:22px">${q[1]}</div><b style="font-size:13px">${q[2]}</b></a>`).join("")}</div></div></div></div>`;
+  <div class="card"><h2>Быстрый доступ</h2><div class="grid quick">${[["vocab", "📚", "Слова"], ["grammar", "🧩", "Грамматика"], ["det", "🦉", "DET"], ["reading", "📖", "Чтение"], ["listening", "🎧", "Аудио"], ["chat", "🤖", "Диалог"]].map(q => `<a href="#${q[0]}" class="card link" style="text-align:center;text-decoration:none;color:inherit;padding:12px"><div style="font-size:22px">${q[1]}</div><b style="font-size:13px">${q[2]}</b></a>`).join("")}</div></div></div></div>`;
 };
 
 // ===================== УРОВНИ =====================
@@ -1532,7 +1540,7 @@ function flashcards(box, words, mode) {
   const draw = () => {
     if (i >= words.length) { record("Vocabulary", "Vocabulary", cnt[2] + cnt[3] + cnt[1] * 0.5, words.length, { route: "study-review" }); return studyDone(box, `Не знаю: ${cnt[0]} · Сложно: ${cnt[1]} · Хорошо: ${cnt[2]} · Легко: ${cnt[3]}`, mode); }
     const w = words[i];
-    box.innerHTML = `<div class="card stack"><div class="row between"><span class="pill">${i + 1} / ${words.length}</span>${lv(w.level)}</div><div class="flash"><div class="w">${esc(w.word)}</div><div class="row"><span class="ipa">/${esc(w.ipa)}/</span><span class="rupr">≈ ${esc(w.rupr)}</span>${spk(w.word)}</div><div id="ans" class="hide stack"><div style="font-size:20px;font-weight:700">${esc(w.ru)}</div><div class="ex" style="text-align:left">${esc(w.ex)}<div class="ru">${esc(w.exru)}</div></div></div><button class="btn pri" id="show">Показать ответ</button></div><div id="grades" class="hide grid g4" style="grid-template-columns:repeat(4,1fr)">${["Не знаю", "Сложно", "Хорошо знаю", "Очень легко"].map((g, k) => `<button class="btn" data-g="${k}" style="justify-content:center">${g}</button>`).join("")}</div></div>`;
+    box.innerHTML = `<div class="card stack"><div class="row between"><span class="pill">${i + 1} / ${words.length}</span>${lv(w.level)}</div><div class="flash"><div class="w">${esc(w.word)}</div><div class="row"><span class="ipa">/${esc(w.ipa)}/</span><span class="rupr">≈ ${esc(w.rupr)}</span>${spk(w.word)}</div><div id="ans" class="hide stack"><div style="font-size:20px;font-weight:700">${esc(w.ru)}</div><div class="ex" style="text-align:left">${esc(w.ex)}<div class="ru">${esc(w.exru)}</div></div></div><button class="btn pri" id="show">Показать ответ</button></div><div id="grades" class="hide grades">${["Не знаю", "Сложно", "Хорошо знаю", "Очень легко"].map((g, k) => `<button class="btn" data-g="${k}" style="justify-content:center">${g}</button>`).join("")}</div></div>`;
     if (S().settings.autoplay !== false) Audio.speak(w.word);
     $("#show", box).onclick = () => { $("#ans", box).classList.remove("hide"); $("#grades", box).classList.remove("hide"); $("#show", box).remove(); };
     $$("[data-g]", box).forEach(b => b.onclick = () => { const g = +b.dataset.g; cnt[g]++; SRS.grade(w.id, g); if (g === 0) { logMistake("Vocabulary", `${w.word} — перевод?`, "не вспомнил", w.ru, w.ex).wid = w.id; if (words.length < 40) words.push(w); } i++; draw(); });
@@ -2129,7 +2137,8 @@ const App = {
     const resumed = Store.resume();
     if (resumed) (Store.state.custom.words || []).forEach(w => addWord(w)), Object.assign(CUSTOM_LESSONS, Store.state.custom.lessons || {});
     applyTheme();
-    $("#menuBtn").onclick = () => $("#side").classList.toggle("open");
+    $("#menuBtn").onclick = e => { e.stopPropagation(); $("#side").classList.toggle("open"); };
+    document.addEventListener("click", e => { const sd = $("#side"); if (sd.classList.contains("open") && !sd.contains(e.target)) sd.classList.remove("open"); });
     window.addEventListener("hashchange", route);
     window.addEventListener("beforeunload", () => { tick(); Store.flush(); });
     document.addEventListener("visibilitychange", () => { if (document.hidden) { tick(); Store.flush(); } });

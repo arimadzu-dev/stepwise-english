@@ -5,7 +5,8 @@ const App = {
     const resumed = Store.resume();
     if (resumed) (Store.state.custom.words || []).forEach(w => addWord(w)), Object.assign(CUSTOM_LESSONS, Store.state.custom.lessons || {});
     applyTheme();
-    $("#menuBtn").onclick = () => $("#side").classList.toggle("open");
+    $("#menuBtn").onclick = e => { e.stopPropagation(); $("#side").classList.toggle("open"); };
+    document.addEventListener("click", e => { const sd = $("#side"); if (sd.classList.contains("open") && !sd.contains(e.target)) sd.classList.remove("open"); });
     window.addEventListener("hashchange", route);
     window.addEventListener("beforeunload", () => { tick(); Store.flush(); });
     document.addEventListener("visibilitychange", () => { if (document.hidden) { tick(); Store.flush(); } });

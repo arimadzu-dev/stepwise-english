@@ -126,6 +126,8 @@ table.t th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spa
 .photo{width:100%;max-width:460px;border-radius:14px;border:1px solid var(--line);display:block}
 .kbd{font-family:ui-monospace,monospace;background:var(--surface2);padding:1px 6px;border-radius:5px;font-size:12px}
 .mic.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.grades{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.grades .btn{justify-content:center}
+.quick{grid-template-columns:repeat(3,1fr)}
 .hide{display:none!important}
 @media (max-width:880px){
   .app{grid-template-columns:1fr}
@@ -135,4 +137,9 @@ table.t th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spa
   .main{padding:18px 14px 80px}
   h1{font-size:23px}
   .flash .w{font-size:28px}
+  .grades{grid-template-columns:1fr 1fr}
+  .hero{padding:20px}
+  .modal{padding:20px 16px}
+  .row>select,.row>input{max-width:100%}
+  table.t{font-size:13px}
 }
